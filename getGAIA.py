@@ -120,11 +120,14 @@ if __name__ == "__main__":
             RApms, DECpms = objects.getPMVectors()
             RApms =  [r/factor for r in RApms]
             DECpms = [d/factor for d in DECpms]
-            for (x, y, dx, dy) in zip(RAs, DECs, RApms, DECpms):
+            (parallaxes, p_errors) = objects.getParallaxes()
+            for (x, y, dx, dy, parallax, e_p) in zip(RAs, DECs, RApms, DECpms, parallaxes, p_errors):
                 matplotlib.pyplot.arrow(x, y, dx, dy, hold=None, color='r', width=1/factor, alpha=0.4)
+                matplotlib.pyplot.text(x, y, "%.3f[%.3f]"%(parallax, e_p))
             RApms, DECpms = objects.getPMVectors()
             matplotlib.pyplot.figure(pmPlot.number)
             matplotlib.pyplot.scatter(RApms, DECpms)
+
             matplotlib.pyplot.title(inputObject + "  Proper motions")
             matplotlib.pyplot.xlabel('pmRA (mas/year)')
             matplotlib.pyplot.ylabel('pmDEC (mas/year)')
@@ -144,4 +147,4 @@ if __name__ == "__main__":
             matplotlib.pyplot.clf()
 
 
-    # print(objects.getTableInfo())
+    print(objects.getTableInfo())

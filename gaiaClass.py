@@ -34,6 +34,11 @@ class GAIAObjects:
         magnitudes = [float(g) for g in self.GAIATable['Gmag']]
         return magnitudes
 
+    def getParallaxes(self):
+        parallaxes = [float(p) for p in self.GAIATable['Plx']]
+        errors = [float(p) for p in self.GAIATable['e_Plx']]
+        return parallaxes, errors
+
     def getPMVectors(self):
         raPM =  [float(rapm) for rapm in self.GAIATable['pmRA']]
         decPM = [float(decpm) for decpm in self.GAIATable['pmDE']]
