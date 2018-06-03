@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import astropy, astroquery
+import astropy, astroquery, sys
 import matplotlib.pyplot
 from matplotlib.patches import Circle
 from matplotlib.collections import PatchCollection
@@ -53,11 +53,39 @@ def getVizierResults(name, radius):
     from astropy import units as u
     v = Vizier(columns=["all"], catalog= 'I/345/gaia2')
     v.ROW_LIMIT = 25000
+    results = v.query_object(name, catalog='I/345/gaia2', radius = radius * u.arcsec)
+    keys = results[0].keys()
+    results[0].pprint()
+    objectList = gaiaClass.GAIAObjects(gaiaTable = results[0])
+
+    return objectList
+
+def getUniqueVizierResult(name, radius):
+    from astroquery.vizier import Vizier
+    from astropy import units as u
+    v = Vizier(columns=["all"], catalog= 'I/345/gaia2')
+    v.ROW_LIMIT = 25000
+    results = v.query_object(name, catalog='I/345/gaia2')
+    # results = v.query_object(name, catalog='I/345/gaia2', radius = radius * u.arcsec)
+    keys = results[0].keys()
+    results[0].pprint()
+    print("Number of results: %d"%len(results[0]))
+    objectList = gaiaClass.GAIAObjects(gaiaTable = results[0])
+
+    return objectList
+
+def getDR2Columns():
+    from astroquery.vizier import Vizier
+    from astropy import units as u
+    name = "WD 0023+388"
+    radius = 30
+    v = Vizier(columns=["all"], catalog= 'I/345/gaia2')
+    v.ROW_LIMIT = 25000
     results = v.query_object(name, catalog='I/345/gaia2', radius= radius * u.arcsec)
     keys = results[0].keys()
     objectList = gaiaClass.GAIAObjects(gaiaTable = results[0])
 
-    return objectList
+    return results[0].info()
 
 
 if __name__ == "__main__":
@@ -81,69 +109,27 @@ if __name__ == "__main__":
             filename = line.strip()
             print(filename)
             inputObjects.append(filename)
+        listFile.close()
     else:
         inputObjects.append(arg.object)
 
-    skyPlot = matplotlib.pyplot.figure(figsize=(8, 8))
-    if arg.pm: pmPlot = matplotlib.pyplot.figure(figsize=(6, 6))
+    if arg.columns=="show":
+        print(getDR2Columns())
+        sys.exit()
+
+    columns = []
+    columnFile = open(arg.columns)
+    for line in columnFile:
+        if line[0]=='#': continue
+        if len(line.strip())<1: continue
+        columnname = line.strip()
+        columns.append(columnname)
+    columnFile.close()
+    print(columns)
+
     for inputObject in inputObjects:
         ra, dec = getSimbadCoordinates(inputObject)
         (simRA, simDEC) = parseCoords(ra, dec)
         print("Name: %s    SIMBAD RA: %f, DEC: %f"%(inputObject, simRA, simDEC))
-        objects = getVizierResults(inputObject, arg.radius)
-
-
-        RAs, DECs = objects.getCoords()
-        mags = objects.getMagnitudes()
-        c = 20
-        m = -20/21
-        factor = 3600   # sorta convert to arcseconds
-        radii = [(x * m + c)/factor for x in mags]
-
-        matplotlib.pyplot.figure(skyPlot.number)
-        axes = matplotlib.pyplot.gca()
-
-        patches = []
-        for x, y, r in zip(RAs, DECs, radii):
-            circle = Circle((x, y), r, color='k')
-            patches.append(circle)
-        numObjects = len(patches)
-        p = PatchCollection(patches, alpha=1.0)
-        axes.add_collection(p)
-        matplotlib.pyplot.scatter(simRA, simDEC, color='r', marker='+')
-        matplotlib.pyplot.title(inputObject)
-        matplotlib.pyplot.xlabel('RA (deg)')
-        matplotlib.pyplot.ylabel('DEC (deg)')
-        matplotlib.pyplot.axis('equal')
-        if arg.pm:
-            RApms, DECpms = objects.getPMVectors()
-            RApms =  [r/factor for r in RApms]
-            DECpms = [d/factor for d in DECpms]
-            (parallaxes, p_errors) = objects.getParallaxes()
-            for (x, y, dx, dy, parallax, e_p) in zip(RAs, DECs, RApms, DECpms, parallaxes, p_errors):
-                matplotlib.pyplot.arrow(x, y, dx, dy, hold=None, color='r', width=1/factor, alpha=0.4)
-                matplotlib.pyplot.text(x, y, "%.3f[%.3f]"%(parallax, e_p))
-            RApms, DECpms = objects.getPMVectors()
-            matplotlib.pyplot.figure(pmPlot.number)
-            matplotlib.pyplot.scatter(RApms, DECpms)
-
-            matplotlib.pyplot.title(inputObject + "  Proper motions")
-            matplotlib.pyplot.xlabel('pmRA (mas/year)')
-            matplotlib.pyplot.ylabel('pmDEC (mas/year)')
-            matplotlib.pyplot.axis('equal')
-
-
-        matplotlib.pyplot.figure(skyPlot.number)
-        matplotlib.pyplot.gca().invert_xaxis()
-        matplotlib.pyplot.show(block=False)
-        print("%d objects plotted."%numObjects)
-        input("Press Enter to continue...")
-        if arg.dump: matplotlib.pyplot.savefig("%s_sky.jpg"%inputObject)
-        matplotlib.pyplot.clf()
-        if arg.pm:
-            matplotlib.pyplot.figure(pmPlot.number)
-            if arg.dump: matplotlib.pyplot.savefig("%s_pm.jpg"%inputObject)
-            matplotlib.pyplot.clf()
-
-
-    print(objects.getTableInfo())
+        objects = getUniqueVizierResult(inputObject, 10)
+        print(objects)
