@@ -70,9 +70,13 @@ def getUniqueVizierResult(name, radius):
     keys = results[0].keys()
     results[0].pprint()
     print("Number of results: %d"%len(results[0]))
+    raStr, decStr = getSimbadCoordinates(name)
+    targetRA, targetDEC = parseCoords(raStr, decStr)
+    print("Location of %s is %f, %f"%(name, targetRA, targetDEC))
     objectList = gaiaClass.GAIAObjects(gaiaTable = results[0])
-
-    return objectList
+    closestMatch = objectList.calcAngularDistance(targetRA, targetDEC)
+    singleResult = objectList.getObjectByDR2Name(closestMatch)
+    return singleResult
 
 def getDR2Columns():
     from astroquery.vizier import Vizier
@@ -131,5 +135,5 @@ if __name__ == "__main__":
         ra, dec = getSimbadCoordinates(inputObject)
         (simRA, simDEC) = parseCoords(ra, dec)
         print("Name: %s    SIMBAD RA: %f, DEC: %f"%(inputObject, simRA, simDEC))
-        objects = getUniqueVizierResult(inputObject, 10)
-        print(objects)
+        closestMatch = getUniqueVizierResult(inputObject, 10)
+        print(closestMatch)

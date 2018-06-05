@@ -1,3 +1,5 @@
+import numpy
+
 class GAIAObjects:
     def __init__(self, gaiaTable = None):
         self.objects = []
@@ -24,6 +26,31 @@ class GAIAObjects:
         for o in self.objects:
             if o['Source']==id: return o
         return None
+
+    def calcAngularDistance(self, targetRA, targetDEC):
+        RAs =  [float(ra) for ra in self.GAIATable['RAJ2000']]
+        DECs = [float(dec) for dec in self.GAIATable['DEJ2000']]
+        DR2Names = self.GAIATable['DR2Name']
+        dec1 = targetDEC/180. * numpy.pi
+        ra1 = targetRA/180. * numpy.pi
+        bestMatch = DR2Names[0]
+        matchDistance = 120.
+        for name, ra, dec in zip(DR2Names, RAs, DECs):
+            dec2 = dec/180. * numpy.pi
+            ra2 = ra/180. * numpy.pi
+            a = numpy.sin(dec2)*numpy.sin(dec1) + numpy.cos(dec1)*numpy.cos(dec2)*numpy.cos(ra1-ra2)
+            angularSeparation = numpy.arccos(a) * 180 / numpy.pi * 3600.
+            # print(name, ra, dec, angularSeparation)
+            if angularSeparation < matchDistance:
+                matchDistance = angularSeparation
+                bestMatch = name
+        print("Bestmatch: %s with separation of %f arcseconds"%(bestMatch, matchDistance))
+        return bestMatch
+
+    def getObjectByDR2Name(self, id):
+        DR2Names = [str(name) for name in self.GAIATable['DR2Name']]
+        index = DR2Names.index(id)
+        return self.GAIATable[index]
 
     def getCoords(self):
         RAs =  [float(ra) for ra in self.GAIATable['RAJ2000']]
