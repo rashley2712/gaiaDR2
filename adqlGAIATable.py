@@ -49,14 +49,18 @@ if __name__ == "__main__":
         query = query + text
 
     
-    
-    job = Gaia.launch_job_async("SELECT TOP 100 * FROM gaiadr2.gaia_source as g WHERE g.parallax_over_error >= 20 AND MOD(g.random_index, 100) = 0")
+    print("Executing query: " + query)
+    job = Gaia.launch_job_async(query)
     results = job.get_results()
     resultsTable = gaiaClass.gaiaTABLE()
     resultsTable.setColumns(columns)
-    for r in results:
-        resultsTable.addItem(r['source_id'], results.keys(), r)
+    for count, r in enumerate(results):
+        resultsTable.addItem(str(r['source_id']), results.keys(), r)
+        if (count % 100) == 0:
+            print(count)
+
     print('%d items added to the table.'%resultsTable.getLength())
+    resultsTable.writeAsCSV('gaiasample.csv')
     sys.exit()
 
 

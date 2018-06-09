@@ -18,6 +18,7 @@ class gaiaTABLE:
         for key in keys:
             object[key] = item[key]
         self.objects.append(object)
+        # print("added object called: %s"%name)
         # print(object)
 
     def dumpTable(self):
@@ -35,7 +36,7 @@ class gaiaTABLE:
     def writeAsCSV(self, filename):
         if self.columns is None: return
         outputFile = open(filename, 'wt')
-        outputFile.write("# Name, ")
+        outputFile.write("Name, ")
         for col in self.columns:
             outputFile.write(col + ', ')
         outputFile.write('\n')
@@ -44,7 +45,6 @@ class gaiaTABLE:
             for col in self.columns:
                 outputFile.write(str(row[col]) + ', ')    
             outputFile.write('\n')
-
         outputFile.close()
 
 
