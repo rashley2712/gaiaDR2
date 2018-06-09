@@ -76,7 +76,16 @@ def getUniqueVizierResult(name, radius):
     objectList = gaiaClass.GAIAObjects(gaiaTable = results[0])
     closestMatch = objectList.calcAngularDistance(targetRA, targetDEC)
     singleResult = objectList.getObjectByDR2Name(closestMatch)
-    return singleResult
+    return keys, singleResult
+
+def getRandomVizier(numResults):
+    from astroquery.vizier import Vizier
+    from astropy import units as u
+    v = Vizier(columns=["all"], catalog= 'I/345/gaia2', column_filters={"RandomI":"830339102..840339102", "e_Plx":"<0.1"})
+    v.ROW_LIMIT = numResults 
+    result = v.get_catalogs('I/345/gaia2')
+    result[0].pprint()
+    return result[0].keys(), result[0]
 
 def getDR2Columns():
     from astroquery.vizier import Vizier
@@ -96,14 +105,32 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Goes to VizieR for data on GAIA objects.')
     parser.add_argument('object', type=str, help='Object name.')
     parser.add_argument('columns', type=str, help='A text file containing a list of column names.')
-
+    
     parser.add_argument('--list', action='store_true', help="Object is a file containing a list of objects.")
     parser.add_argument('--version', action='store_true', help='Show Astropy and Astroquery versions.')
     arg = parser.parse_args()
 
+    import astropy.units as u
+    from astropy.coordinates import SkyCoord
+    from astroquery.gaia import Gaia
+
+    coord = SkyCoord(ra=280, dec=-60, unit=(u.degree, u.degree), frame='icrs')
+    width = u.Quantity(0.1, u.deg)
+    height = u.Quantity(0.1, u.deg)
+    #r = Gaia.query_object_async(coordinate=coord, width=width, height=height)
+    #r.pprint()
+    #job = Gaia.launch_job_async("select top 100 * from gaiadr2.gaia_source as gaia order by source_id where gaia.parallax/gaia.parallax_error >= 5")
+    job = Gaia.launch_job_async("SELECT TOP 100 * FROM gaiadr2.gaia_source as g WHERE g.parallax_over_error >= 20 AND MOD(g.random_index, 100) = 0")
+    r = job.get_results()
+    print(r.keys())
+    print(r['source_id'], r['parallax_over_error'], r['phot_g_mean_mag'])
+    sys.exit()
+
+
     if arg.version:
         print("Astropy version: ", astropy.__version__)
         print("Astroquery version: ", astroquery.__version__)
+        sys.exit()
 
     inputObjects = []
     if arg.list:
@@ -131,9 +158,28 @@ if __name__ == "__main__":
     columnFile.close()
     print(columns)
 
+    if arg.object=='random':
+        numObjects = 100
+        print("Getting %d random objects"%numObjects)
+        keys, results = getRandomVizier(numObjects)
+        randomTable = gaiaClass.gaiaTABLE()
+        for r in results: 
+            print(r['DR2Name'], r['Plx'], r['e_Plx'], r['Plx']/r['e_Plx'])
+            if r['Plx']/r['e_Plx'] > 20: 
+                randomTable.addItem('random', keys, r)
+        print("Found %d eligible objects"%randomTable.getLength())
+        randomTable.setColumns(columns)
+        randomTable.writeAsCSV('sample.csv')
+        sys.exit()
+
+    resultsTable = gaiaClass.gaiaTABLE()
+    resultsTable.setColumns(columns)
     for inputObject in inputObjects:
         ra, dec = getSimbadCoordinates(inputObject)
         (simRA, simDEC) = parseCoords(ra, dec)
         print("Name: %s    SIMBAD RA: %f, DEC: %f"%(inputObject, simRA, simDEC))
-        closestMatch = getUniqueVizierResult(inputObject, 10)
-        print(closestMatch)
+        keys, closestMatch = getUniqueVizierResult(inputObject, 10)
+        resultsTable.addItem(inputObject, keys, closestMatch)
+
+    resultsTable.dumpTable()
+    resultsTable.writeAsCSV('pcebs.csv')

@@ -1,5 +1,54 @@
 import numpy
 
+class gaiaTABLE:
+    def __init__(self):
+        self.length = 0
+        self.objects = []
+        self.columns = None
+
+    def getLength(self):
+        return len(self.objects)
+
+    def setColumns(self, columns):
+        self.columns = columns
+
+    def addItem(self, name, keys, item):
+        # print("Adding item")
+        object = {'name': name}
+        for key in keys:
+            object[key] = item[key]
+        self.objects.append(object)
+        # print(object)
+
+    def dumpTable(self):
+        if self.columns is None: return
+        print("Name", end='\t')
+        for col in self.columns:
+            print(col, end="\t")
+        print()
+        for row in self.objects:
+            print(row['name'], end='\t')
+            for col in self.columns:
+                print(row[col], end='\t')    
+            print()
+
+    def writeAsCSV(self, filename):
+        if self.columns is None: return
+        outputFile = open(filename, 'wt')
+        outputFile.write("# Name, ")
+        for col in self.columns:
+            outputFile.write(col + ', ')
+        outputFile.write('\n')
+        for row in self.objects:
+            outputFile.write(row['name'] + ', ')
+            for col in self.columns:
+                outputFile.write(str(row[col]) + ', ')    
+            outputFile.write('\n')
+
+        outputFile.close()
+
+
+
 class GAIAObjects:
     def __init__(self, gaiaTable = None):
         self.objects = []
